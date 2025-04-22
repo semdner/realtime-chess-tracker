@@ -1,53 +1,97 @@
 import streamlit as st
+import cv2
+import torch
+import numpy as np
+import av
+from streamlit_webrtc import webrtc_streamer
+from ultralytics import YOLO
 
-@st.dialog("Set Game Information")
-def game_settings():
-    with st.form("Game Information", border=False, enter_to_submit=False):
-        st.caption("Enter information about the players and the game to be included in the PGN.")
+st.title("Realtime Chess Tracker")
 
-        info_col1, info_col2 = st.columns(2)
+model = YOLO("model/best.pt")
 
-        with info_col1:
-            st.text_input("White", placeholder="Name of the white player")
-            st.number_input("White Elo", value=0)
-            st.text_input("White Team", placeholder="Team of the white player")
+mode = None
 
-        with info_col2:
-            st.text_input("Black", placeholder="Name of the black player")
-            st.number_input("Black Elo", value=0)
-            st.text_input("Black Team", placeholder="Name of the black player")
+def video_model(frame: av.VideoFrame):
+    img = frame.to_ndarray(format="bgr24")
 
-        st.date_input("Date")
+    if mode == "box":
+        results = model.predict(img)
 
-        submitted = st.form_submit_button("Save")
-        if submitted:
-            st.rerun()
+        for result in results:
+            boxes = result.boxes
+            for box in boxes:
+                x1, y1, x2, y2 = box.xyxy[0]
+                x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+                cv2.rectangle(img, (x1, y1), (x2, y2), color=(0, 0, 255), thickness=2)
+    elif mode == "segmentation":
+        results = model.predict(img)
+        for result in results:
+           for index, item in enumerate(result):
+                b_mask = np.zeros(img.shape[:2], np.uint8)
+                contour = item.masks.xy.pop().astype(np.int32).reshape(-1, 1, 2)
 
-# col1, col2 = st.columns(2)
-st.camera_input("Model Predictions and Previews")
-st.multiselect("Objects to display", ["Chessboard", "Corners", "Pieces"])
+                overlay = np.zeros_like(img)
 
-# with col1:
-#     st.camera_input("Model Predictions and Previews")
-#     st.multiselect("Objects to display", ["Chessboard", "Corners", "Pieces"])
+                cv2.drawContours(overlay, [contour], -1, (255, 0, 0), thickness=cv2.FILLED)
 
-# with col2:
-#     st.image("src/transformed2.png")
+                # Blend the overlay with the original frame
+                alpha = 0.5
+                img = cv2.addWeighted(overlay, alpha, img, 1 - alpha, 0)    
+    elif mode == "contour":
+            results = model.predict(img)
+            for result in results:
+                for index, item in enumerate(result):
+                    b_mask = np.zeros(img.shape[:2], np.uint8)
+                    pred_contour = item.masks.xy.pop().astype(np.int32).reshape(-1, 1, 2)
+                    new_img = cv2.drawContours(b_mask, [pred_contour], -1, (255, 255, 255), cv2.FILLED)
 
-#     btn_col1, btn_col2, btn_col3, btn_col4 = st.columns(4)
-    
-#     with btn_col1:
-#         if st.button("Copy FEN"):
-#             st.success("FEN copied to clipboard.")
+                    # Find contour from mask
+                    mask_contours, hierarchy = cv2.findContours(new_img, 1, 2)
 
-#     with btn_col2:
-#         if st.button("Copy PGN"):
-#             st.success("PGN copied to clipboard.")
+                    for cnt in mask_contours:
+                        epsilon = 0.01 * cv2.arcLength(cnt, True)
+                        contour = cv2.approxPolyDP(cnt, epsilon, True)
+                        cv2.drawContours(img, [contour], -1, (0, 0, 255), 2)
 
-#     with btn_col3:
-#         if "game_settings" not in st.session_state:
-#             if st.button("Game Settings"):
-#                 game_settings()
+                        if len(contour) == 4:
+                            x1, y1 = contour[0][0][0], contour[0][0][1]
+                            x2, y2 = contour[1][0][0], contour[1][0][1]
+                            x3, y3 = contour[2][0][0], contour[2][0][1]
+                            x4, y4 = contour[3][0][0], contour[3][0][1]
+                            x1, y1 = int(x1), int(y1)
+                            x2, y2 = int(x2), int(y2)
+                            x3, y3 = int(x3), int(y3)
+                            x4, y4 = int(x4), int(y4)
+                            cv2.circle(img, (x1, y1), radius=5, color=(255, 0, 0), thickness=-1)
+                            cv2.circle(img, (x2, y2), radius=5, color=(255, 0, 0), thickness=-1)
+                            cv2.circle(img, (x3, y3), radius=5, color=(255, 0, 0), thickness=-1)
+                            cv2.circle(img, (x4, y4), radius=5, color=(255, 0, 0), thickness=-1)
 
-#     with btn_col4:
-#         st.button("Save Game")
+    elif mode == "none":
+        pass
+
+    return av.VideoFrame.from_ndarray(img, format="bgr24")
+
+
+col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 1])
+
+with col1:
+    if st.button("None"):
+        mode = None
+with col2:
+    if st.button("Bounding Box"):
+        mode = "box"
+with col3:
+    if st.button("Segmentation"):
+        mode = "segmentation"
+with col4:
+    if st.button("Contour"):
+        mode = "contour"
+with col5:
+    if st.button("Calibrate"):
+        mode = "calibrate"
+
+webrtc_streamer(key="streamer", 
+                video_frame_callback=video_model,
+                sendback_audio=False)
