@@ -2,7 +2,7 @@ ultralytics
 torch
 torchvision
 torchaudio
-opencv-python
+opencv-python-headless
 matplotlib
 numpy
 python-dotenv
