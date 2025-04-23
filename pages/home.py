@@ -10,7 +10,10 @@ st.title("Realtime Chess Tracker")
 
 model = YOLO("model/best.pt")
 
-mode = None
+mode = st.session_state.mode
+
+contour = None
+corners = None
 
 def video_model(frame: av.VideoFrame):
     img = frame.to_ndarray(format="bgr24")
@@ -63,6 +66,7 @@ def video_model(frame: av.VideoFrame):
                             x2, y2 = int(x2), int(y2)
                             x3, y3 = int(x3), int(y3)
                             x4, y4 = int(x4), int(y4)
+                            corners = [[x1, y1], [x2, y2], [x3, y3], [x4, y4]]
                             cv2.circle(img, (x1, y1), radius=5, color=(255, 0, 0), thickness=-1)
                             cv2.circle(img, (x2, y2), radius=5, color=(255, 0, 0), thickness=-1)
                             cv2.circle(img, (x3, y3), radius=5, color=(255, 0, 0), thickness=-1)
@@ -74,24 +78,15 @@ def video_model(frame: av.VideoFrame):
     return av.VideoFrame.from_ndarray(img, format="bgr24")
 
 
-col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 1])
+# tab1, tab2 = st.tabs(["Live Capture", "Video Upload"])
+col1, col2 = st.columns([2, 1])
+
 
 with col1:
-    if st.button("None"):
-        mode = None
+    st.header("Camera Preview")
+    webrtc_streamer(key="streamer", 
+        video_frame_callback=video_model,
+        sendback_audio=False)
 with col2:
-    if st.button("Bounding Box"):
-        mode = "box"
-with col3:
-    if st.button("Segmentation"):
-        mode = "segmentation"
-with col4:
-    if st.button("Contour"):
-        mode = "contour"
-with col5:
-    if st.button("Calibrate"):
-        mode = "calibrate"
-
-webrtc_streamer(key="streamer", 
-                video_frame_callback=video_model,
-                sendback_audio=False)
+    st.header("Game")
+    st.image("lichess.png")
