@@ -12,8 +12,8 @@ model = YOLO("model/best.pt")
 
 mode = st.session_state.mode
 
-contour = None
-corners = None
+contour = st.session_state.contour
+corners = st.session_state.corners
 
 def video_model(frame: av.VideoFrame):
     img = frame.to_ndarray(format="bgr24")
@@ -55,6 +55,7 @@ def video_model(frame: av.VideoFrame):
                     for cnt in mask_contours:
                         epsilon = 0.01 * cv2.arcLength(cnt, True)
                         contour = cv2.approxPolyDP(cnt, epsilon, True)
+                        st.session_state.contour = contour
                         cv2.drawContours(img, [contour], -1, (0, 0, 255), 2)
 
                         if len(contour) == 4:
@@ -67,6 +68,7 @@ def video_model(frame: av.VideoFrame):
                             x3, y3 = int(x3), int(y3)
                             x4, y4 = int(x4), int(y4)
                             corners = [[x1, y1], [x2, y2], [x3, y3], [x4, y4]]
+                            st.session_state.corners = corners
                             cv2.circle(img, (x1, y1), radius=5, color=(255, 0, 0), thickness=-1)
                             cv2.circle(img, (x2, y2), radius=5, color=(255, 0, 0), thickness=-1)
                             cv2.circle(img, (x3, y3), radius=5, color=(255, 0, 0), thickness=-1)
@@ -88,5 +90,5 @@ with col1:
         video_frame_callback=video_model,
         sendback_audio=False)
 with col2:
-    st.header("Game")
+    st.header("Game Recording")
     st.image("lichess.png")
