@@ -8,3 +8,6 @@ numpy
 python-dotenv
 streamlit
 streamlit_webrtc
+python-chess
+cairosvg
+streamlit-autorefresh
