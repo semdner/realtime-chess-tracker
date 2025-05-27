@@ -8,7 +8,7 @@ import state
 from PIL import Image
 from streamlit_webrtc import webrtc_streamer
 from ultralytics import YOLO
-from setup_game import calibrate
+from setup_game import calibrate, init_board
 from streamlit_autorefresh import st_autorefresh
 
 st.title("Realtime Chess Tracker")
@@ -22,12 +22,13 @@ def camera_preview(frame: av.VideoFrame):
         is_calibrated = calibrate(img)
         if is_calibrated:
             print("calibrated correctly")
+            state.board = init_board()
+            print(state.board)
             state.image_path = "media/starting_board.png"
         else:
             print("not calibrated correctly")
             state.image_path = "media/empty_board.png"
 
-        
         state.mode = None
     
     elif state.mode == "record":
@@ -58,6 +59,5 @@ with col2:
     try:
         image = Image.open(image_path)
         st.image(image)
-        print(image_path)
     except FileNotFoundError:
         st.error(f"Bild nicht gefunden: {image_path}")

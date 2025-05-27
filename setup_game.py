@@ -4,6 +4,7 @@ import torch
 import numpy as np
 import av
 import chess
+import state
 from streamlit_webrtc import webrtc_streamer
 from ultralytics import YOLO
 
@@ -310,6 +311,8 @@ def calibrate(frame):
     if matrix is None:
         return False
 
+    
+
     # apply homography to frame (display chessboard upright)
     homographed_frame = apply_homography_to_frame(frame, corners, matrix)
 
@@ -364,9 +367,14 @@ def calibrate(frame):
     # CHECK IF THE PIECES ARE CORRECTLY SETUP
     
     is_board_setup = check_starting_position(piece_square_mapping)
+    
+    # update cache
+    if is_board_setup:
+        state.corners = corners
+        state.matrix = matrix
 
     return is_board_setup
-    
 
 
-
+def init_board():
+    return chess.Board(chess.STARTING_FEN)

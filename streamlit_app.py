@@ -27,18 +27,6 @@ def game_settings():
             }
             st.rerun()
 
-
-# Create the session states
-
-# if "mode" not in st.session_state:
-#     st.session_state.mode = None
-
-# if "vote" not in st.session_state:
-#     st.session_state.vote = None
-
-# if "corners" not in st.session_state:
-#     st.session_state.corners = None
-
 # Configure pages
 st.set_page_config(layout="wide")
 
@@ -61,11 +49,10 @@ with st.sidebar:
     if st.button("Record", use_container_width=True):
         state.mode = "record"
     
-    # st.subheader("Game Settings")
-    # if st.button("Copy PGN", use_container_width=True):
-    #     # print(st.session_state.vote)
-    #     print("PGN copied")
-    # if st.button("Copy FEN", use_container_width=True):
-    #     print("FEN copied")
-    # if st.button("Game Settings", use_container_width=True):
-    #     game_settings()
+    st.subheader("Game Settings")
+    if st.button("Copy PGN", use_container_width=True):
+        print("PGN copied")
+    if st.button("Copy FEN", use_container_width=True):
+        print("FEN copied")
+    if st.button("Game Settings", use_container_width=True):
+        game_settings()
