@@ -9,6 +9,7 @@ from PIL import Image
 from streamlit_webrtc import webrtc_streamer
 from ultralytics import YOLO
 from setup_game import calibrate, init_board
+from record_game import record, generate_image
 from streamlit_autorefresh import st_autorefresh
 
 st.title("Realtime Chess Tracker")
@@ -19,11 +20,10 @@ def camera_preview(frame: av.VideoFrame):
     img = frame.to_ndarray(format="bgr24")
 
     if state.mode == "calibrate":
-        is_calibrated = calibrate(img)
-        if is_calibrated:
+        state.is_calibrated = calibrate(img)
+        if state.is_calibrated:
             print("calibrated correctly")
             state.board = init_board()
-            print(state.board)
             state.image_path = "media/starting_board.png"
         else:
             print("not calibrated correctly")
@@ -32,7 +32,14 @@ def camera_preview(frame: av.VideoFrame):
         state.mode = None
     
     elif state.mode == "record":
-        pass
+        if state.is_calibrated:
+            print("start recording")
+            is_valid_move = record(img)
+            if is_valid_move:
+                print(state.board)
+                state.image_path = generate_image(state.board)
+        else:
+            print("not calibreted yet")
     
     elif state.mode == None:
         pass

@@ -1,11 +1,8 @@
-import streamlit as st
 import cv2
 import torch
 import numpy as np
-import av
 import chess
 import state
-from streamlit_webrtc import webrtc_streamer
 from ultralytics import YOLO
 
 piece_cls_name_mapping = {
@@ -92,7 +89,7 @@ def get_bbox_center(bbox):
     return [center_x, center_y]
 
 
-""""""
+"""return the coordinates of the bottom keypoint for each piece"""
 def get_piece_coordinates(results, piece_coordinates_mapping, piece_coordinates):
     for result in results:
         boxes = result.boxes
@@ -310,8 +307,6 @@ def calibrate(frame):
 
     if matrix is None:
         return False
-
-    
 
     # apply homography to frame (display chessboard upright)
     homographed_frame = apply_homography_to_frame(frame, corners, matrix)
